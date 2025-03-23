@@ -76,60 +76,60 @@ public class VistaCaja extends javax.swing.JInternalFrame {
     
     
 public void sumaTotalCompra() {
-    // Usamos la variable global para la suma total y el IVA
+    // Reiniciar los acumuladores
     sumaTotal = 0;
     double sumaIVA = 0;
 
     // Iterar sobre los productos vendidos
     for (VentaProducto ventaProducto : tablaVenta) {
-        // Calcular el total sin IVA
-        double subtotalProducto = ventaProducto.getValor() * ventaProducto.getCantidadVendida();
-        
-        // Calcular el IVA extraído (basado en el total con IVA)
-        double totalConIVA = subtotalProducto * 1.19; // Precio con IVA incluido
-        double IVAProducto = totalConIVA * (0.19 / 1.19); // Extraemos solo el IVA
-        
-        // Acumulando solo el IVA
-        sumaIVA += IVAProducto; 
-        
-        // Acumulando el subtotal de los productos sin IVA para el total
-        sumaTotal += subtotalProducto; 
+        // Tomar el total como valor bruto (con IVA)
+        double totalConIVA = ventaProducto.getValor() * ventaProducto.getCantidadVendida();
+
+        // Calcular el valor neto (sin IVA)
+        double subtotalProducto = totalConIVA / 1.19;
+
+        // Calcular el IVA correctamente
+        double IVAProducto = totalConIVA - subtotalProducto;
+
+        // Acumular valores
+        sumaIVA += IVAProducto;
+        sumaTotal += totalConIVA; // Ahora sumaTotal representa el total con IVA
     }
-    
-// Mostrar los valores en los campos de texto sin decimales
-txt_iva19.setText(String.format("%d", (int) sumaIVA)); // IVA total
-txt_total.setText(String.format("%d", (int) sumaTotal)); // Total a pagar sin IVA
+
+    // Mostrar los valores en los campos de texto sin decimales
+    txt_iva19.setText(String.format("%d", (int) sumaIVA)); // IVA total
+    txt_total.setText(String.format("%d", (int) sumaTotal)); // Total con IVA
 }
 
-  public void llenarTabla() {
-        // Limpiar la tabla antes de llenarla
-        model.setRowCount(0);
-        tbl_cotizacion.setModel(model);
+public void llenarTabla() {
+    // Limpiar la tabla antes de llenarla
+    model.setRowCount(0);
+    tbl_cotizacion.setModel(model);
 
-        // Recorrer los productos en tablaVenta
-        for (VentaProducto ventaProducto : tablaVenta) {
-            int stock = ventaProducto.getCantidadRecepcionada();
-            int cantidadVendida = ventaProducto.getCantidadVendida();
-            double valor = ventaProducto.getValor(); // Precio unitario sin IVA
-            double subtotal = valor * cantidadVendida; // Precio total sin IVA
-            double totalConIVA = subtotal * 1.19; // Total con IVA
-            double IVAProducto = totalConIVA * (0.19 / 1.19); // Extraemos solo el IVA
+    // Recorrer los productos en tablaVenta
+    for (VentaProducto ventaProducto : tablaVenta) {
+        int stock = ventaProducto.getCantidadRecepcionada();
+        int cantidadVendida = ventaProducto.getCantidadVendida();
+        double valorBruto = ventaProducto.getValor(); // Valor con IVA incluido
+        double totalConIVA = valorBruto * cantidadVendida; // Total bruto
+        double subtotal = totalConIVA / 1.19; // Extraemos el valor neto sin IVA
+        double IVAProducto = totalConIVA - subtotal; // IVA correcto
 
-            // Crear el objeto para la fila
-// Crear el objeto para la fila
-Object[] objeto = new Object[7];
-objeto[0] = ventaProducto.getNombreProducto();
-objeto[1] = ventaProducto.getSku();
-objeto[2] = ventaProducto.getMarcaVehiculo();
-objeto[3] = ventaProducto.getModelosCompatibles();
-objeto[4] = String.format("%d", (int) subtotal); // Precio total sin IVA (entero)
-objeto[5] = String.format("%d", (int) IVAProducto); // IVA extraído (entero)
-objeto[6] = cantidadVendida; // Cantidad vendida
+        // Crear el objeto para la fila
+        Object[] objeto = new Object[7];
+        objeto[0] = ventaProducto.getNombreProducto();
+        objeto[1] = ventaProducto.getSku();
+        objeto[2] = ventaProducto.getMarcaVehiculo();
+        objeto[3] = ventaProducto.getModelosCompatibles();
+        objeto[4] = String.format("%d", (int) subtotal); // Precio total sin IVA (entero)
+        objeto[5] = String.format("%d", (int) IVAProducto); // IVA extraído (entero)
+        objeto[6] = cantidadVendida; // Cantidad vendida
 
-            // Agregar la fila al modelo
-            model.addRow(objeto);
-        }
+        // Agregar la fila al modelo
+        model.addRow(objeto);
     }
+}
+  
     public void llenarCombo(){
         try {
             comboBox_repuesto.removeAllItems();
@@ -778,9 +778,10 @@ try {
     // 4. Crear fuentes para el PDF
     Font fuenteTitulo = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD);
     Font fuenteNormal = new Font(Font.FontFamily.HELVETICA, 12);
-    Font fuenteTabla = new Font(Font.FontFamily.HELVETICA, 9, Font.BOLD);
+    Font fuenteTabla = new Font(Font.FontFamily.HELVETICA, 8, Font.BOLD); // Reducido de 9 a 8
     Font fuenteSubtitulo = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLDITALIC);
     Font fuenteBancaria = new Font(Font.FontFamily.HELVETICA, 10);
+    Font fuenteTablaContenido = new Font(Font.FontFamily.HELVETICA, 7); // Fuente más pequeña para el contenido
 
     // 5. Agregar información de título
     documento.add(new Paragraph("Cotización de Repuestos", fuenteTitulo));
@@ -808,10 +809,12 @@ try {
         tabla.addCell(celda);
     }
 
-    // 9. Agregar las filas de la tabla
+    // 9. Agregar las filas de la tabla con fuente más pequeña
     for (int i = 0; i < tbl_cotizacion.getRowCount(); i++) {
         for (int j = 0; j < tbl_cotizacion.getColumnCount(); j++) {
-            tabla.addCell(new Phrase(tbl_cotizacion.getValueAt(i, j).toString(), fuenteNormal));
+            PdfPCell celda = new PdfPCell(new Phrase(tbl_cotizacion.getValueAt(i, j).toString(), fuenteTablaContenido));
+            celda.setHorizontalAlignment(Element.ALIGN_CENTER);
+            tabla.addCell(celda);
         }
     }
 
